@@ -12,6 +12,7 @@ import {
   insertEditDiff,
   latestVersionNumber,
   listAssetsForSolution,
+  listCaseStudyTemplates,
   listMediaForSolution,
   listVersions,
   publishSolution,
@@ -90,6 +91,35 @@ function buildBrief(type: EngineType, solutionId: string): { brief: string; erro
 
 export type RunResult = { ok: boolean; assetId: string; error?: string };
 
+/**
+ * Facts-driven template pick for the automatic fan-out, mirroring each template's
+ * "when to use" condition: recorded quotes favor quote-led; two or more recorded
+ * metrics favor stat-led-hero; real photos favor photo-story; a thin brief gets
+ * the one-pager. An explicit or previously stored choice always wins over this.
+ */
+function pickCaseStudyTemplate(solutionId: string): string | null {
+  const available = new Set(listCaseStudyTemplates().map((t) => t.slug));
+  if (!available.size) return null;
+  const pick = (slug: string) => (available.has(slug) ? slug : null);
+
+  const solution = getSolution(solutionId);
+  const client = solution?.clientId ? getClient(solution.clientId) : undefined;
+  let facts: { quotes?: unknown[]; metrics?: unknown[] } = {};
+  try {
+    facts = client?.factsJson ? JSON.parse(client.factsJson) : {};
+  } catch {
+    facts = {};
+  }
+  const quotes = Array.isArray(facts.quotes) ? facts.quotes.length : 0;
+  const metrics = Array.isArray(facts.metrics) ? facts.metrics.length : 0;
+  const photos = listMediaForSolution(solutionId).filter((m) => m.kind === "photo" || m.kind === "screenshot").length;
+
+  if (quotes > 0) return pick("quote-led") ?? pick("stat-led-hero");
+  if (metrics >= 2) return pick("stat-led-hero") ?? pick("one-pager");
+  if (photos > 0) return pick("photo-story") ?? pick("one-pager");
+  return pick("one-pager");
+}
+
 /** Working-copy edits live only on the asset row; true when bodyMd was never captured as a version. */
 function hasUnversionedEdits(asset: Asset): boolean {
   if (asset.bodyMd.trim() === "") return false;
@@ -132,21 +162,29 @@ export async function runEngine(type: EngineType, solutionId: string, opts?: { t
   const jobId = createJob({ assetId: asset.id, engine: type, model });
   try {
     const override = getPromptOverride(type);
-    // without an explicit template, keep the one previously chosen for this asset (stored in metaJson)
+    // template resolution: explicit choice > previously chosen for this asset > facts-driven pick
     let template = opts?.template;
     if (type === "case_study" && !template && asset.metaJson) {
       try {
         const stored = JSON.parse(asset.metaJson)?.template;
         if (typeof stored === "string" && stored) template = stored;
       } catch {
-        // unreadable metaJson, fall through to the default template
+        // unreadable metaJson, fall through to the chooser
       }
+    }
+    if (type === "case_study" && !template) {
+      template = pickCaseStudyTemplate(solutionId) ?? undefined;
     }
     const base = type === "case_study" ? caseStudySystem(template) : ENGINE_SYSTEMS[type]();
     const system = base + (override ? `\n\nOPERATOR OVERRIDES (these win over anything above):\n${override}` : "");
-    if (type === "case_study" && opts?.template) {
-      const meta = asset.metaJson ? JSON.parse(asset.metaJson) : {};
-      db.update(schema.assets).set({ metaJson: JSON.stringify({ ...meta, template: opts.template }) }).where(eqId(asset.id)).run();
+    if (type === "case_study" && template) {
+      let meta: Record<string, unknown> = {};
+      try {
+        meta = asset.metaJson ? JSON.parse(asset.metaJson) : {};
+      } catch {
+        meta = {};
+      }
+      db.update(schema.assets).set({ metaJson: JSON.stringify({ ...meta, template }) }).where(eqId(asset.id)).run();
     }
     const result = await getProvider().stream({
       system,
