@@ -2,6 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { formatForPlatformAction, markPublishedAction } from "@/app/solutions/[id]/actions";
+import { MetricsForm } from "@/components/metrics/metrics-form";
+import { parseMetrics } from "@/components/metrics/types";
 
 const LOCKED_NOTE = "Approved, awaiting upstream URLs, mark the blog/page published first.";
 
@@ -19,7 +21,7 @@ export function ExportPanel({
   solutionId: string;
   platforms: { key: string; label: string }[];
   locked: string[];
-  publications: { platform: string; url: string | null }[];
+  publications: { platform: string; url: string | null; metricsJson?: string | null }[];
 }) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [flash, setFlash] = useState<string | null>(null);
@@ -120,6 +122,14 @@ export function ExportPanel({
                 Mark published
               </button>
             </div>
+            {live?.url ? (
+              <MetricsForm
+                assetId={assetId}
+                platform={p.key}
+                solutionId={solutionId}
+                initial={live.metricsJson !== undefined ? parseMetrics(live.metricsJson) : undefined}
+              />
+            ) : null}
           </div>
         );
       })}

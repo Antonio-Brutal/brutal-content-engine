@@ -1,5 +1,6 @@
 import {
   Asset,
+  getActivePack,
   createJob,
   ensureSolutionDocAsset,
   estimateCostUsd,
@@ -203,7 +204,122 @@ export async function runEngine(type: EngineType, solutionId: string, opts?: { t
     writeVersion(asset.id, result.text, "ai");
     setAssetStatus(asset.id, "draft");
     finishJob(jobId, { status: "succeeded", tokensIn: result.tokensIn, tokensOut: result.tokensOut, costUsd: estimateCostUsd(result.tokensIn, result.tokensOut) });
+    await runPostDraftHooks(asset.id, type);
     return { ok: true, assetId: asset.id };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    setAssetStatus(asset.id, "failed");
+    finishJob(jobId, { status: "failed", error: message });
+    return { ok: false, assetId: asset.id, error: message };
+  }
+}
+
+/** Best-effort follow-ups after every fresh draft: the compliance judge, and Flux
+ *  auto-fill of illustrative case-study image slots (screenshots stay human-only). */
+async function runPostDraftHooks(assetId: string, type: EngineType) {
+  try {
+    if (type === "case_study") await autoFillIllustrativeSlots(assetId);
+  } catch {
+    /* slot filling never blocks the draft */
+  }
+  try {
+    const { runCompliancePass } = await import("@/lib/compliance");
+    await runCompliancePass(assetId);
+  } catch {
+    /* the review is advisory */
+  }
+}
+
+async function autoFillIllustrativeSlots(assetId: string) {
+  const asset = getAsset(assetId);
+  if (!asset) return;
+  const { getImageProvider, brandArtDirection } = await import("@/lib/images");
+  const provider = getImageProvider();
+  if (provider.configError()) return;
+  const { parseCaseStudy, fillSlotInMarkdown } = await import("@/components/case-study/parse");
+  const { createMedia } = await import("@/db/repo");
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const { MEDIA_DIR } = await import("@/db/client");
+
+  const empty = parseCaseStudy(asset.bodyMd)
+    .filter((b) => b.type === "image" && !b.mediaId && b.kind !== "screenshot" && b.brief)
+    .slice(0, 2) as { slot: string; brief: string }[];
+
+  let body = asset.bodyMd;
+  for (const slot of empty) {
+    const { data, mime } = await provider.generate({ prompt: brandArtDirection(slot.brief) });
+    const storageKey = `${nanoid(12)}.png`;
+    fs.writeFileSync(path.join(MEDIA_DIR, storageKey), data);
+    const media = createMedia({ solutionId: asset.solutionId ?? undefined, kind: "infographic", storageKey, mime, alt: slot.brief.slice(0, 200) });
+    body = fillSlotInMarkdown(body, slot.slot, media.id);
+  }
+  if (empty.length) {
+    db.update(schema.assets).set({ bodyMd: body, updatedAt: now() }).where(eqId(assetId)).run();
+  }
+}
+
+/** Two independent blog drafts judged against each other; the winner becomes the working draft. */
+export async function runBlogVariants(solutionId: string): Promise<RunResult & { judgeSummary?: string }> {
+  const asset = ensureAssetOfType(solutionId, "blog");
+  const { brief, error } = buildBrief("blog", solutionId);
+  if (error) return { ok: false, assetId: asset.id, error };
+  const provider = getProvider();
+  const configError = provider.configError();
+  if (configError) return { ok: false, assetId: asset.id, error: configError };
+
+  if (hasUnversionedEdits(asset)) writeVersion(asset.id, asset.bodyMd, "human");
+  setAssetStatus(asset.id, "generating");
+  const jobId = createJob({ assetId: asset.id, engine: "blog-variants", model: LONGFORM_MODEL });
+  try {
+    const system = ENGINE_SYSTEMS.blog();
+    const angles = [
+      "\n\nVARIANT DIRECTION: open with the cold-open-on-universal-pain move.",
+      "\n\nVARIANT DIRECTION: open with the claim-first move and lead the strongest recorded number.",
+    ];
+    const drafts = await Promise.all(
+      angles.map((a) =>
+        provider.stream({ system: system + a, messages: [{ role: "user", content: `THE BRIEF:\n\n${brief}` }], model: LONGFORM_MODEL, maxTokens: 32000 })
+      )
+    );
+    const judge = await provider.stream({
+      system: `You judge two blog drafts against Brutal's Brand Pack (hallmark register, closed world, citability). Respond with ONLY a JSON object, no fences: {"winner": 1 or 2, "why": "two sentences naming concrete craft differences"}.\n\nTHE BRAND PACK:\n${getActivePack()}`,
+      messages: [{ role: "user", content: `DRAFT 1:\n${drafts[0].text}\n\n=====\n\nDRAFT 2:\n${drafts[1].text}` }],
+      model: DEFAULT_MODEL,
+      maxTokens: 2000,
+    });
+    let winner = 1;
+    let why = "";
+    try {
+      const j = JSON.parse(judge.text.slice(judge.text.indexOf("{"), judge.text.lastIndexOf("}") + 1));
+      winner = j.winner === 2 ? 2 : 1;
+      why = String(j.why ?? "");
+    } catch {
+      /* default to draft 1 */
+    }
+    const loser = drafts[winner === 1 ? 1 : 0];
+    const win = drafts[winner - 1];
+
+    const fresh = getAsset(asset.id);
+    if (!fresh || fresh.status !== "generating") {
+      finishJob(jobId, { status: "failed", error: "superseded (status changed during generation)" });
+      return { ok: false, assetId: asset.id, error: "superseded (status changed during generation)" };
+    }
+    writeVersion(asset.id, loser.text, "ai"); // runner-up preserved as a version
+    writeVersion(asset.id, win.text, "ai"); // winner is the working draft
+    setAssetStatus(asset.id, "draft");
+    let meta: Record<string, unknown> = {};
+    try {
+      meta = fresh.metaJson ? JSON.parse(fresh.metaJson) : {};
+    } catch {
+      meta = {};
+    }
+    db.update(schema.assets).set({ metaJson: JSON.stringify({ ...meta, variantJudge: { winner, why, at: now() } }) }).where(eqId(asset.id)).run();
+    const tokensIn = drafts[0].tokensIn + drafts[1].tokensIn + judge.tokensIn;
+    const tokensOut = drafts[0].tokensOut + drafts[1].tokensOut + judge.tokensOut;
+    finishJob(jobId, { status: "succeeded", tokensIn, tokensOut, costUsd: estimateCostUsd(tokensIn, tokensOut) });
+    await runPostDraftHooks(asset.id, "blog");
+    return { ok: true, assetId: asset.id, judgeSummary: why };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     setAssetStatus(asset.id, "failed");
@@ -336,6 +452,7 @@ export async function runRepurpose(sourceAssetId: string, targetType: EngineType
     writeVersion(a.id, result.text, "ai");
     setAssetStatus(a.id, "draft");
     finishJob(jobId, { status: "succeeded", tokensIn: result.tokensIn, tokensOut: result.tokensOut, costUsd: estimateCostUsd(result.tokensIn, result.tokensOut) });
+    await runPostDraftHooks(a.id, targetType);
     return { ok: true, assetId: a.id };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -386,6 +503,7 @@ export async function runAdhoc(type: EngineType, brief: string): Promise<RunResu
     writeVersion(a.id, result.text, "ai");
     setAssetStatus(a.id, "draft");
     finishJob(jobId, { status: "succeeded", tokensIn: result.tokensIn, tokensOut: result.tokensOut, costUsd: estimateCostUsd(result.tokensIn, result.tokensOut) });
+    await runPostDraftHooks(a.id, type);
     return { ok: true, assetId: a.id };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

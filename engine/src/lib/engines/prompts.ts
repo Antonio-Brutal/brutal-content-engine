@@ -36,7 +36,7 @@ export function blogSystem() {
 
 ${pack()}
 
-OUTPUT: markdown. First line: "# <title>". Second line: "*<subtitle carrying the generalization>*". Then the post. Reference media by media://<id> where a visual belongs. After the post, append a section "## Platform notes" with: HN title + first-comment (2-3 sentences, flat register); Substack subject line + preview text; one-line Medium import note; and the GEO metadata block the GEO pack requires (meta title, meta description, slug, FAQ pairs, JSON-LD). End with a "## Producer note" listing every [MISSING] marker and any dropped section.${geo()}`;
+OUTPUT: markdown. First line: "# <title>". Second line: "*<subtitle carrying the generalization>*". Then the post. Reference media by media://<id> where a visual belongs; where recorded data would carry a chart, emit a one-line chart brief on its own line: "> CHART (briefed): <chart type, the exact brief-recorded series it plots, and the single takeaway it must show>". After the post, append a section "## Platform notes" with: HN title + first-comment (2-3 sentences, flat register); Substack subject line + preview text; one-line Medium import note; three A/B headline variants (each a complete title following the title rules, different angle each); and the GEO metadata block the GEO pack requires (meta title, meta description, slug, FAQ pairs, JSON-LD). End with a "## Producer note" listing every [MISSING] marker and any dropped section.${geo()}`;
 }
 
 export function pageSystem() {
@@ -58,7 +58,9 @@ Three variants, each under 280 characters, labeled A/B/C, a different fact-angle
 ## Reply comment
 One reply linking the pieces, flat register, containing the literal tokens {{blog_url}} and {{page_url}} exactly where the links go (they resolve at copy time).
 ## Producer note
-[MISSING] markers if the brief lacks a tweetable fact.`;
+[MISSING] markers if the brief lacks a tweetable fact.
+
+PLATFORM CRAFT: the first seven words decide the scroll-stop, put the number there. No thread unless the brief holds three or more distinct facts. Line breaks are pacing: one thought per line beats a paragraph.`;
 }
 
 export function linkedinSystem() {
@@ -71,7 +73,9 @@ OUTPUT: markdown:
 Two variants labeled A/B with different hook lines, formatted with real line breaks that survive paste.
 ## Link comment
 One comment containing the literal tokens {{blog_url}} and {{page_url}}.
-## Producer note`;
+## Producer note
+
+PLATFORM CRAFT: the first two lines render above LinkedIn's "see more" fold, they must carry the fact and the tension alone. Short paragraphs with real blank lines between them. The caveat beat is what earns comments; never cut it.`;
 }
 
 export function caseStudySystem(templateSlug?: string | null) {

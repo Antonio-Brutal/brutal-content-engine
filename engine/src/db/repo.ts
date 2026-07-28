@@ -198,6 +198,13 @@ export function liveUrlsForSolution(solutionId: string): Partial<Record<"blog" |
   return out;
 }
 
+export function setPublicationMetrics(publicationId: string, metrics: { views?: number; clicks?: number; notes?: string }) {
+  db.update(schema.publications)
+    .set({ metricsJson: JSON.stringify({ ...metrics, recordedAt: now() }) })
+    .where(eq(schema.publications.id, publicationId))
+    .run();
+}
+
 export function recentPublications(limit = 8) {
   return db.select().from(schema.publications).where(eq(schema.publications.status, "live")).orderBy(desc(schema.publications.publishedAt)).limit(limit).all();
 }
@@ -260,6 +267,27 @@ export function costForSolution(solutionId: string) {
   let usd = 0;
   for (const j of db.select().from(schema.generationJobs).all()) {
     if (j.assetId && assetIds.has(j.assetId)) usd += j.costUsd ?? 0;
+  }
+  return usd;
+}
+
+export function costForAsset(assetId: string) {
+  let usd = 0;
+  for (const j of db.select().from(schema.generationJobs).where(eq(schema.generationJobs.assetId, assetId)).all()) {
+    usd += j.costUsd ?? 0;
+  }
+  return usd;
+}
+
+/** Generation spend since the first of the current month, for the budget bar. */
+export function costThisMonth() {
+  const start = new Date();
+  start.setDate(1);
+  start.setHours(0, 0, 0, 0);
+  const cutoff = start.getTime();
+  let usd = 0;
+  for (const j of db.select().from(schema.generationJobs).all()) {
+    if ((j.startedAt ?? 0) >= cutoff) usd += j.costUsd ?? 0;
   }
   return usd;
 }

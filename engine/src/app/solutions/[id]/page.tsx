@@ -10,6 +10,8 @@ import {
   listVersions,
 } from "@/db/repo";
 import { Card, EmptyState, SectionLabel, StatusPill } from "@/components/ui";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { ExportButton } from "@/components/export-button";
 import { BoardDocEditor } from "@/components/board/doc-editor";
 import { BoardColumn } from "@/components/board/column";
 import { AttachClientCard } from "@/components/clients/attach-card";
@@ -45,8 +47,12 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
   // Latest job error per asset (jobs come back newest-first).
   const latestJobError = (assetId: string) => jobs.find((j) => j.assetId === assetId)?.error ?? null;
 
+  // While anything on the board is generating, the page polls itself.
+  const anyAssetGenerating = assets.some((a) => a.status === "generating");
+
   return (
     <div>
+      <AutoRefresh active={anyAssetGenerating} />
       <div className="mb-10">
         <Link href="/solutions" className="label transition-colors hover:text-(--text)">
           All solutions.
@@ -54,6 +60,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <h1 className="text-3xl font-medium tracking-[-0.02em]">{solution.title}</h1>
           <StatusPill status={solution.status === "published" ? "published" : "draft"} />
+          <ExportButton solutionId={id} />
         </div>
         <p className="label mt-3">
           Created {fmtDate(solution.createdAt)} · updated {fmtDate(solution.updatedAt)}.

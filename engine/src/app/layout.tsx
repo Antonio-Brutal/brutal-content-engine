@@ -25,6 +25,7 @@ const NAV = [
   { href: "/solutions", label: "Solutions" },
   { href: "/blog", label: "Blog" },
   { href: "/case-studies", label: "Case studies" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/solutions/new", label: "New" },
   { href: "/studio", label: "Studio" },
   { href: "/repurpose", label: "Repurpose" },

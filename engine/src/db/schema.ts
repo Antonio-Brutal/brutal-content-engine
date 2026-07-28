@@ -65,6 +65,7 @@ export const publications = sqliteTable("publications", {
   status: text("status", { enum: ["planned", "live"] }).notNull().default("planned"),
   url: text("url"),
   publishedAt: integer("published_at"),
+  metricsJson: text("metrics_json"), // manually recorded performance: views, clicks, notes, recordedAt
 });
 
 export const clients = sqliteTable("clients", {

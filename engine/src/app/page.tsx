@@ -1,17 +1,18 @@
 import Link from "next/link";
 import {
+  costThisMonth,
   getAsset,
   getSolutionDocAsset,
   listAllAssets,
   listAssetsForSolution,
   listSolutions,
   recentPublications,
-  totalCost,
   type Asset,
 } from "@/db/repo";
 import { ENGINE_LABELS, type EngineType } from "@/lib/engines/prompts";
 import { PLATFORMS } from "@/lib/engines/exports";
 import { Card, EmptyState, PageTitle, SectionLabel, StatusPill } from "@/components/ui";
+import { parseMetrics } from "@/components/metrics/types";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,14 @@ export default function CommandCenter() {
   const stale = engineAssets.filter((a) => a.status === "stale").length;
   const failed = engineAssets.filter((a) => a.status === "failed").length;
   const blocked = engineAssets.filter((a) => a.status === "blocked").length;
-  const cost = totalCost();
+
+  // Month budget: this month's generation spend against BUDGET_MONTHLY_USD.
+  const monthCost = costThisMonth();
+  const budgetEnv = Number(process.env.BUDGET_MONTHLY_USD);
+  const budget = Number.isFinite(budgetEnv) && budgetEnv > 0 ? budgetEnv : 50;
+  const budgetRatio = monthCost / budget;
+  const budgetBarClass = budgetRatio < 0.8 ? "bg-(--lime)" : budgetRatio < 1 ? "bg-(--amber)" : "bg-(--red)";
+  const budgetBarPct = Math.min(100, budgetRatio * 100);
 
   const attention = engineAssets
     .filter((a) => (a.status === "failed" || a.status === "stale" || a.status === "draft") && a.solutionId)
@@ -60,6 +68,7 @@ export default function CommandCenter() {
         publishedAt: p.publishedAt,
         platformLabel: PLATFORMS[p.platform]?.label ?? p.platform,
         solutionTitle: solution?.title ?? "Studio",
+        views: parseMetrics(p.metricsJson)?.views ?? null,
       },
     ];
   });
@@ -122,8 +131,14 @@ export default function CommandCenter() {
           <p className="label mt-1">Blocked on clients.</p>
         </Card>
         <Card>
-          <p className="text-2xl font-medium tabular-nums">${cost.toFixed(2)}</p>
-          <p className="label mt-1">Generation cost.</p>
+          <p className="text-2xl font-medium tabular-nums">
+            ${monthCost.toFixed(2)}
+            <span className="text-sm text-(--muted)"> of ${budget}</span>
+          </p>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-(--panel-2)">
+            <div className={`h-full rounded-full ${budgetBarClass}`} style={{ width: `${budgetBarPct}%` }} />
+          </div>
+          <p className="label mt-2">Month budget.</p>
         </Card>
       </div>
 
@@ -226,6 +241,7 @@ export default function CommandCenter() {
                   <span className="min-w-0 truncate text-sm">
                     <span className="font-medium">{r.solutionTitle}</span>
                     <span className="text-(--muted)">, {r.platformLabel}</span>
+                    {r.views != null ? <span className="text-(--muted)"> · {r.views} views</span> : null}
                   </span>
                   {r.publishedAt ? (
                     <span className="shrink-0 font-mono text-xs text-(--muted)">{fmtDate(r.publishedAt)}</span>

@@ -1,0 +1,34 @@
+# Brutal
+
+> Brutal is a high-end AI engineering agency. A focused team of experienced AI engineers embeds inside companies with complex operations, unique workflows, and deep internal knowledge to design, build, and ship custom AI/ML systems.
+
+Brutal works with organizations whose operations do not fit off-the-shelf software. Instead of selling a product, Brutal places engineers directly alongside executives and internal teams, builds systems where the work actually happens, and treats AI as a competitive advantage rather than a threat to be managed.
+
+The work falls into three areas. Executive visibility: connecting company knowledge across communications, reporting, and internal systems so leadership and operational teams can see what is going on. Workflow automation: building custom AI agents that take over high-volume, repetitive operational work and free teams for higher-value tasks. Custom AI/ML engineering: designing systems aligned with each client's data, workflows, and teams.
+
+The engagement model has three steps. We embed: engineers work directly with executives and internal teams. We trace: they follow how work moves across systems and identify the highest-impact AI opportunities. We build: they ship systems into real use, then keep testing and improving them.
+
+The site is available in English and German. Contact is through the "Get in touch" form on the homepage; there is no separate contact page.
+
+## Company
+
+- [Brutal (English)](https://brutal.ai/en): English homepage with the full positioning, services, and process
+- [Brutal (German)](https://brutal.ai/de): German homepage with the same content
+
+## What we do
+
+- [What we do](https://brutal.ai/en#what-we-do): The three service areas: executive visibility, workflow automation, and custom AI/ML engineering
+
+## How we work
+
+- [How we work](https://brutal.ai/en#how-we-work): The embedded engagement model: we embed, we trace, we build
+
+## Contact
+
+- [Get in touch](https://brutal.ai/en): The "Get in touch" buttons on the homepage open the contact form
+
+## Optional
+
+- [Privacy Policy](https://brutal.ai/en/privacy-policy): How Brutal handles personal data
+- [Terms of Service](https://brutal.ai/en/terms-of-service): Terms governing use of the site and services
+- [Cookie Policy](https://brutal.ai/en/cookie-policy): How the site uses cookies

@@ -65,6 +65,11 @@ function bootstrap(sqlite: Database.Database) {
   } catch {
     /* column already exists */
   }
+  try {
+    sqlite.exec(`ALTER TABLE publications ADD COLUMN metrics_json TEXT`);
+  } catch {
+    /* column already exists */
+  }
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_versions_asset ON asset_versions(asset_id);
     CREATE INDEX IF NOT EXISTS idx_media_solution ON media(solution_id);
