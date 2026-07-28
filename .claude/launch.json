@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "engine",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/antonio.marques/Documents/Claude Projects/Brutal Master Content Generator/engine"],
+      "port": 3000
+    }
+  ]
+}

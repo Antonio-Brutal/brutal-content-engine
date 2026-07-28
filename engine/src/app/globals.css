@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #020617;
+  --panel: #0a1123;
+  --panel-2: #0e162e;
+  --line: rgba(248, 250, 252, 0.09);
+  --line-strong: rgba(248, 250, 252, 0.18);
+  --text: #f8fafc;
+  --muted: #8a94a8;
+  --lime: #c6f14a;
+  --lime-ink: #101600;
+  --red: #ff6b5e;
+  --amber: #f5a623;
+  --blue: #7fb4e8;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-lime: var(--lime);
+  --font-sans: var(--font-grotesk);
+  --font-mono: var(--font-plex-mono);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-grotesk), system-ui, sans-serif;
+  /* the brutal.ai dotted grid */
+  background-image: radial-gradient(rgba(248, 250, 252, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+/* uppercase letterspaced section labels, brutal.ai style, trailing period in content */
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.hairline {
+  border-color: var(--line);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 11px 22px;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.btn:hover { border-color: var(--text); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--lime-ink);
+}
+.btn-primary:hover { background: #d4f96a; border-color: #d4f96a; }
+
+.btn-danger { border-color: rgba(255, 107, 94, 0.5); color: var(--red); }
+.btn-danger:hover { border-color: var(--red); }
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.input:focus, .textarea:focus, .select:focus { border-color: var(--lime); }
+.textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+.input::placeholder, .textarea::placeholder { color: rgba(138, 148, 168, 0.6); }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.pill-draft { color: var(--blue); }
+.pill-approved { color: var(--lime); }
+.pill-stale, .pill-blocked { color: var(--amber); }
+.pill-failed { color: var(--red); }
+.pill-generating { color: var(--muted); }
+.pill-published { color: var(--lime); background: rgba(198, 241, 74, 0.1); }
+
+/* rendered markdown (solution docs, vault entries) */
+.prose-brutal {
+  font-size: 15px;
+  line-height: 1.75;
+  color: rgba(248, 250, 252, 0.92);
+}
+.prose-brutal h1 { font-size: 1.6em; font-weight: 500; letter-spacing: -0.02em; margin: 1.2em 0 0.5em; }
+.prose-brutal h2 { font-size: 1.25em; font-weight: 500; letter-spacing: -0.01em; margin: 1.6em 0 0.5em; border-bottom: 1px solid var(--line); padding-bottom: 0.3em; }
+.prose-brutal h3 { font-size: 1.05em; font-weight: 500; margin: 1.3em 0 0.4em; }
+.prose-brutal p { margin: 0.7em 0; }
+.prose-brutal ul, .prose-brutal ol { margin: 0.7em 0; padding-left: 1.4em; }
+.prose-brutal li { margin: 0.3em 0; }
+.prose-brutal code { font-family: var(--font-plex-mono), monospace; font-size: 0.85em; background: var(--panel-2); padding: 2px 6px; border-radius: 4px; }
+.prose-brutal pre { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 1em 0; }
+.prose-brutal pre code { background: none; padding: 0; }
+.prose-brutal table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; display: block; overflow-x: auto; }
+.prose-brutal th, .prose-brutal td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+.prose-brutal blockquote { border-left: 2px solid var(--lime); padding-left: 1em; color: var(--muted); margin: 1em 0; }
+.prose-brutal a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.prose-brutal strong { font-weight: 600; }
